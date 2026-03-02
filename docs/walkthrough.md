@@ -41,7 +41,7 @@ Execution path in plain terms:
 
 ## 3.1 Docker's role
 
-Docker runs PostgreSQL in an isolated Linux container so you do not need a manual local Postgres installation.
+Docker runs the full runtime stack in isolated Linux containers.
 
 Container responsibilities:
 
@@ -49,6 +49,8 @@ Container responsibilities:
 - Persists database files using named volume `postgres_data`
 - Exposes Postgres on local port `5432`
 - Reports health via `pg_isready`
+- Builds and runs the app service (FastAPI + static frontend host)
+- Runs one-shot seed jobs to create/populate all datasets
 
 This keeps database setup reproducible and disposable:
 
@@ -78,16 +80,23 @@ The frontend handles:
 From repo root:
 
 ```bash
-make db-up
-make setup
 cp .env.example .env
-make db-seed
+make up
+make seed
 make run
 ```
 
 What each command does:
 
-### `make db-up`
+### `cp .env.example .env`
+
+Why it exists:
+
+- Creates your local runtime config file
+- Keeps environment-specific values out of git history
+- Allows local overrides without editing committed templates
+
+### `make up`
 
 Expands to:
 
@@ -101,40 +110,17 @@ Why it exists:
 - Creates `postgres_data` volume if missing
 - Brings up a known DB runtime baseline for everyone
 
-### `make setup`
+### `make seed`
 
 Expands to:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
+docker compose run --rm seed
 ```
 
 Why it exists:
 
-- Isolates dependencies per-project
-- Pins backend dependencies to known versions
-- Avoids polluting global Python packages
-
-### `cp .env.example .env`
-
-Why it exists:
-
-- Separates local runtime config from committed defaults
-- Allows host/port/password changes without code edits
-- Keeps secrets out of git (`.env` is gitignored)
-
-### `make db-seed`
-
-Expands to:
-
-```bash
-.venv/bin/python scripts/init_practice_datasets.py
-```
-
-Why it exists:
-
+- Uses the app image with all Python dependencies preinstalled in-container
 - Creates all practice databases if missing
 - Resets schema in each database
 - Seeds shared baseline + domain-specific datasets
@@ -145,21 +131,38 @@ Why it exists:
 Expands to:
 
 ```bash
-.venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+docker compose up -d --build app postgres
 ```
 
 Why it exists:
 
-- Runs local backend + static host
-- `--reload` auto-restarts when files change
+- Ensures app and DB services are running together
+- Builds app image when code/dependencies changed
 - Gives one local URL for both UI and API
+
+### `make down`
+
+Expands to:
+
+```bash
+docker compose down
+```
+
+Why it exists:
+
+- Cleanly stops the stack
+- Leaves persistent volume in place so your dataset state survives
+
+### Optional host mode
+
+The repo still provides `make setup-local` and `make run-local` for non-container app execution, but container mode is the default path.
 
 ## 5) Why It Feels "Seamless"
 
 The setup feels smooth because the project is designed to reduce hidden state:
 
-1. Single command per stage (`db-up`, `setup`, `db-seed`, `run`)
-2. Dockerized DB version pinning (`postgres:17`)
+1. Single command per stage (`up`, `seed`, `run`, `down`)
+2. Dockerized app + DB runtime version pinning
 3. Idempotent seed script behavior (create if missing + reset schema)
 4. Backend defaults in config with env override support
 5. Frontend is static files, so no Node build chain required
@@ -170,11 +173,13 @@ The setup feels smooth because the project is designed to reduce hidden state:
 
 | File | What it does | Why it exists |
 |---|---|---|
+| `.dockerignore` | Excludes local/cache/secrets from Docker build context | Faster and safer image builds |
 | `.env.example` | Template of runtime env vars | Documents expected config and defaults |
 | `.gitignore` | Excludes `.env`, `.venv`, caches | Prevents leaking local/secrets/noise |
-| `Makefile` | Defines `setup`, `db-up`, `db-seed`, `run` targets | Fast onboarding and consistent commands |
+| `Dockerfile` | Builds app image with Python runtime and dependencies | Reproducible app execution environment |
+| `Makefile` | Defines `up`, `seed`, `run`, `down`, `reset` and optional local targets | Fast onboarding and consistent lifecycle commands |
 | `requirements.txt` | Pinned Python dependencies | Reproducible backend installs |
-| `docker-compose.yml` | Defines local Postgres service and volume | Reproducible DB infrastructure |
+| `docker-compose.yml` | Defines `postgres`, `seed`, and `app` services plus volume/network wiring | Reproducible full-stack infrastructure |
 | `README.md` | Quick start and high-level overview | Entry point for new contributors |
 
 ## 6.2 Backend application files
@@ -324,8 +329,9 @@ Suggested commands:
 
 ```bash
 git checkout -b codex/your-feature
-PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m compileall app scripts
 make run
+make logs
+make down
 ```
 
 ## 10.2 Safe areas to edit first
@@ -370,4 +376,3 @@ The frontend should require little to no change because it already consumes engi
 2. Add seed-size presets (`small`, `medium`, `large`) for faster local resets.
 3. Add one more metrics panel for network + JSON serialization timings.
 4. Add an optional "safe mode" that blocks non-SELECT statements.
-
