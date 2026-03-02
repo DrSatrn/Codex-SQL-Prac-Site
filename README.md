@@ -1,20 +1,20 @@
 # SQL Practice Lab
 
-A local-first SQL training site built with plain HTML/CSS/JS on the frontend and FastAPI on the backend.
+A local SQL training site with:
+
+- Plain HTML/CSS/JavaScript frontend
+- FastAPI backend
+- PostgreSQL execution engine
+- Full Docker Compose runtime (app + DB + seeding)
 
 ## What this build delivers
-- PostgreSQL as the primary dialect and execution engine (real semantics).
-- SSMS-inspired query window layout.
-- Monaco editor with syntax highlighting and inline squiggles.
-- Error and warning diagnostics panel.
-- Query result grid with row limit support.
-- Query performance metrics:
-  - parse/lint time
-  - execution time
-  - total server round-trip
-  - optional `EXPLAIN ANALYZE` planning/execution values
-- Session query history (browser `sessionStorage`).
-- Six prebuilt practice datasets seeded with substantial data:
+
+- PostgreSQL semantics for realistic SQL behavior
+- Monaco editor with syntax highlighting and inline diagnostics
+- Warning/error message panel + underlined editor markers
+- Performance metrics (parse/lint/execute/total + explain timing)
+- Session query history in browser storage
+- Six seeded datasets:
   - `sales_lab`
   - `hr_lab`
   - `finance_lab`
@@ -22,45 +22,67 @@ A local-first SQL training site built with plain HTML/CSS/JS on the frontend and
   - `logistics_lab`
   - `social_lab`
 
-## Tech choices (and why)
-- **PostgreSQL**: best free local engine for real SQL semantics and realistic performance behavior.
-- **FastAPI + psycopg**: minimal, fast API layer with reliable Postgres execution.
-- **Monaco Editor**: robust highlighting + diagnostics markers without using React.
-- **Vanilla HTML/CSS/JS**: simple, fast, no framework overhead.
+## Runtime model
 
-## Quick start (M-series Mac)
+Everything can run in containers:
 
-### 1) Start PostgreSQL
-Use Docker (recommended):
+- `postgres` service: database engine + persistent volume
+- `seed` service: one-off dataset creation and population
+- `app` service: FastAPI API + static frontend host
 
-```bash
-make db-up
-```
+## Prerequisites
 
-### 2) Create venv + install dependencies
+- Docker (OrbStack or Docker Desktop)
+- Docker Compose plugin
+- `make`
 
-```bash
-make setup
-```
+No host Python install is required for normal use.
 
-### 3) Seed practice datasets
+## Quick start (containerized)
+
+1. From repo root:
 
 ```bash
 cp .env.example .env
-make db-seed
 ```
 
-### 4) Run the app
+2. Start PostgreSQL:
+
+```bash
+make up
+```
+
+3. Seed datasets (first run or whenever you want to reset/populate):
+
+```bash
+make seed
+```
+
+4. Start app container:
 
 ```bash
 make run
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in Firefox.
+5. Open in Firefox:
 
-## Local environment variables
-Set in `.env`:
+- [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
+## Common commands
+
+```bash
+make ps      # show container status
+make logs    # tail app logs
+make down    # stop containers
+make reset   # drop DB volume, recreate DB, reseed
+```
+
+## Environment variables
+
+Configured via `.env`:
+
+- `APP_HOST`
+- `APP_PORT`
 - `POSTGRES_HOST`
 - `POSTGRES_PORT`
 - `POSTGRES_USER`
@@ -69,13 +91,26 @@ Set in `.env`:
 - `DATASET_NAMES`
 - `QUERY_TIMEOUT_MS`
 
-## Notes on performance metrics
-- `execute_ms` is measured around actual SQL execution on PostgreSQL.
-- For `SELECT`/`WITH`, `include_explain=true` returns planner data from `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`.
-- Result rows are capped by the configured row limit for UI responsiveness.
+## Notes on metrics
+
+- `execute_ms` is measured around query execution on PostgreSQL.
+- For `SELECT`/`WITH`, backend also runs `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` and returns planning/execution timing.
+- Row output is capped by row limit for UI responsiveness.
+
+## Optional host-run mode (legacy)
+
+If you want to run the app on host Python instead of Docker:
+
+```bash
+make setup-local
+make run-local
+```
+
+This is optional; container mode is the default path.
 
 ## Adding more engines later
+
 1. Add a new adapter under `app/engines/` implementing `QueryEngine`.
 2. Register it in `app/engines/registry.py`.
-3. Expose any required dataset/source config.
-4. Frontend engine dropdown will populate via `/api/v1/engines`.
+3. Add engine-specific configuration.
+4. Frontend engine list auto-populates from `/api/v1/engines`.
