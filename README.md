@@ -1,5 +1,10 @@
 # SQL Practice Lab
 
+**Please Note**
+The initial scaffolding, project creation and documentation was created by Codex (OpenAi).
+I do not want to claim this work as my own. I have made various changes and upgrades but the inital work was entirely *vibe coded* (cough)
+Consider this an official disclaimer
+
 A local-first SQL training site built with plain HTML/CSS/JS on the frontend and FastAPI on the backend.
 
 ## What this build delivers
