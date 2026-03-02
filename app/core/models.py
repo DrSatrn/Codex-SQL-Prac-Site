@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class Diagnostic(BaseModel):
     line: int = 1
     start_col: int = 1
     end_col: int = 1
-    code: str | None = None
+    code: Optional[str] = None
 
 
 class LintRequest(BaseModel):
@@ -37,7 +37,7 @@ class QueryResponse(BaseModel):
     ok: bool
     dataset: str
     engine: str
-    command: str | None = None
+    command: Optional[str] = None
     columns: list[str] = Field(default_factory=list)
     rows: list[dict[str, Any]] = Field(default_factory=list)
     truncated: bool = False
@@ -47,8 +47,8 @@ class QueryResponse(BaseModel):
     lint_ms: float = 0
     execute_ms: float = 0
     total_ms: float = 0
-    explain: dict[str, Any] | None = None
-    error: str | None = None
+    explain: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
 
 
 class DatasetInfo(BaseModel):

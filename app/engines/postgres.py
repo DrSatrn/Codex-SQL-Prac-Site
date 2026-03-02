@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from time import perf_counter
+from typing import Any, Optional
 
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -83,7 +84,7 @@ class PostgresQueryEngine(QueryEngine):
                     explain=explain,
                 )
 
-    def _collect_explain(self, *, conn, sql: str) -> dict | None:
+    def _collect_explain(self, *, conn, sql: str) -> Optional[dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(f'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) {sql}')
             payload = cur.fetchone()

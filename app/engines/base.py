@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from app.core.models import Diagnostic
 
 
 @dataclass
 class QueryExecutionResult:
-    command: str | None
+    command: Optional[str]
     columns: list[str]
     rows: list[dict[str, Any]]
     row_count: int
     truncated: bool
     execute_ms: float
-    explain: dict[str, Any] | None = None
+    explain: Optional[dict[str, Any]] = None
 
 
 class QueryEngine(ABC):
