@@ -1,5 +1,10 @@
 # Architecture
 
+## Runtime topology
+- `postgres` service runs PostgreSQL 17 with persistent Docker volume storage.
+- `seed` service is a one-shot container that creates and populates all practice databases.
+- `app` service runs FastAPI + static frontend host and talks to `postgres` over the Docker network.
+
 ## Why PostgreSQL first
 - PostgreSQL provides real execution semantics and realistic planner behavior while remaining free and easy to run locally.
 - Query timing and `EXPLAIN ANALYZE` metrics are meaningful for real PostgreSQL work.
