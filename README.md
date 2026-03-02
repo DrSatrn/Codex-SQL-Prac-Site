@@ -58,6 +58,12 @@ make run
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in Firefox.
 
+## Deep walkthrough
+
+For a detailed architecture and code walkthrough, see:
+
+- [`docs/walkthrough.md`](docs/walkthrough.md)
+
 ## Local environment variables
 Set in `.env`:
 
